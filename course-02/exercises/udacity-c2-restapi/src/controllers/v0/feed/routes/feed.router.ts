@@ -5,14 +5,16 @@ import * as AWS from '../../../../aws';
 
 const router: Router = Router();
 
-// Get all feed items
+// Get all feed items from database
 router.get('/', async (req: Request, res: Response) => {
     const items = await FeedItem.findAndCountAll({order: [['id', 'DESC']]});
+    // map items with signed url, gets key from database to access url from client
     items.rows.map((item) => {
             if(item.url) {
                 item.url = AWS.getGetSignedUrl(item.url);
             }
     });
+    // send items back to client
     res.send(items);
 });
 
@@ -29,6 +31,7 @@ router.patch('/:id',
 
 
 // Get a signed url to put a new item in the bucket
+// signed url will only work with the file we are attempting to upload
 router.get('/signed-url/:fileName', 
     requireAuth, 
     async (req: Request, res: Response) => {
@@ -56,6 +59,7 @@ router.post('/',
         return res.status(400).send({ message: 'File url is required' });
     }
 
+    // instantiate new feed item and use sequelize interface to save it
     const item = await new FeedItem({
             caption: caption,
             url: fileName
